@@ -4,9 +4,11 @@ from freezegun import freeze_time
 from redis import Redis
 
 redis = Redis()
-simple_minute_tier = Tier("minute", 10, 0, 0)
-simple_hour_tier = Tier("hour", 0, 10, 0)
-simple_daily_tier = Tier("day", 0, 0, 10)
+simple_minute_tier = Tier("10/minute", 10, 0, 0)
+simple_hour_tier = Tier("10/hour", 0, 10, 0)
+simple_daily_tier = Tier("10/day", 0, 0, 10)
+long_minute_short_hour_tier = Tier("long_min_short_hour", 100, 10, 0)
+everything_set_short_day_tier = Tier("everything_set", 100, 100, 10)
 
 
 @pytest.mark.parametrize(
@@ -15,6 +17,8 @@ simple_daily_tier = Tier("day", 0, 0, 10)
         (simple_minute_tier, 60),
         (simple_hour_tier, 3600),
         (simple_daily_tier, 60 * 60 * 25),
+        (long_minute_short_hour_tier, 3600),
+        (everything_set_short_day_tier, 60 * 60 * 25),
     ],
 )
 def test_check_limit_per_minute(tier, reset_time):
