@@ -1,3 +1,4 @@
+import os
 from redis import Redis
 import datetime
 import typing
@@ -16,6 +17,13 @@ class RateLimitExceeded(Exception):
     pass
 
 
+def _get_redis_connection():
+    host = os.environ.get("RRL_REDIS_HOST", "localhost")
+    port = os.environ.get("RRL_REDIS_PORT", 6379)
+    db = os.environ.get("RRL_REDIS_DB", 0)
+    return Redis(host=host, port=port, db=db)
+
+
 class RateLimiter:
     """
     <zone>:<key>:<hour><minute>         expires in 2 minutes
@@ -24,7 +32,7 @@ class RateLimiter:
     """
 
     def __init__(self, tiers: typing.List[Tier], *, prefix="", use_redis_time=True):
-        self.redis = Redis()
+        self.redis = _get_redis_connection()
         self.tiers = {tier.name: tier for tier in tiers}
         self.prefix = prefix
         self.use_redis_time = use_redis_time

@@ -1,9 +1,8 @@
 import pytest
-from ratelimit import Tier, RateLimiter, RateLimitExceeded
+from ratelimit import Tier, RateLimiter, RateLimitExceeded, _get_redis_connection
 from freezegun import freeze_time
-from redis import Redis
 
-redis = Redis()
+redis = _get_redis_connection()
 simple_minute_tier = Tier("10/minute", 10, 0, 0)
 simple_hour_tier = Tier("10/hour", 0, 10, 0)
 simple_daily_tier = Tier("10/day", 0, 0, 10)
