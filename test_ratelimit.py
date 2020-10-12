@@ -1,5 +1,5 @@
 import pytest
-from ratelimit import Tier, RateLimiter, RateLimitExceeded, _get_redis_connection
+from rrl import Tier, RateLimiter, RateLimitExceeded, _get_redis_connection
 from freezegun import freeze_time
 
 redis = _get_redis_connection()
