@@ -39,6 +39,8 @@ jobs:
       run: poetry install
       # if: steps.cache.outputs.cache-hit != 'true'
      
+    - name: lint with mypy
+      run: poetry run mypy --disallow-untyped-defs rrl.py
     - name: lint with flake8
       run: poetry run flake8 . --show-source --statistics --ignore=E203,E501
     - name: pytest
