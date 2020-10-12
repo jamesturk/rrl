@@ -10,6 +10,8 @@ python = "^3.8"
 redis = "^3.5.3"
 
 [tool.poetry.dev-dependencies]
+pytest = "^6.1.1"
+freezegun = "^1.0.0"
 
 [build-system]
 requires = ["poetry>=0.12"]
