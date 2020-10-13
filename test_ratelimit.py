@@ -110,3 +110,20 @@ def test_get_daily_usage():
     assert usage[9] == DailyUsage(datetime.date(2020, 1, 10), 0)
     assert usage[14] == DailyUsage(datetime.date(2020, 1, 15), 0)
     assert len(usage) == 15
+
+
+def test_get_daily_usage_untracked():
+    redis.flushall()
+    rl = RateLimiter(
+        tiers=[unlimited_tier], use_redis_time=False, track_daily_usage=False
+    )
+
+    # make Nth day have N calls
+    for n in range(1, 10):
+        with freeze_time(f"2020-01-0{n}"):
+            for _ in range(n):
+                rl.check_limit("zone", "test-key", unlimited_tier.name)
+
+    # values would be incorrect (likely zero), warn the caller
+    with pytest.raises(RuntimeError):
+        rl.get_usage_since("zone", "test-key", datetime.date(2020, 1, 1))

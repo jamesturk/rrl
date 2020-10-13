@@ -108,6 +108,8 @@ class RateLimiter:
         start: datetime.date,
         end: typing.Optional[datetime.date] = None,
     ) -> typing.List[DailyUsage]:
+        if not self.track_daily_usage:
+            raise RuntimeError("track_daily_usage is not enabled")
         if not end:
             end = datetime.date.today()
         days = []
