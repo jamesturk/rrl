@@ -13,6 +13,12 @@ class Tier:
     per_day: int
 
 
+@dataclass
+class DailyUsage:
+    date: datetime.date
+    calls: int
+
+
 class RateLimitExceeded(Exception):
     pass
 
@@ -101,7 +107,7 @@ class RateLimiter:
         key: str,
         start: datetime.date,
         end: typing.Optional[datetime.date] = None,
-    ) -> typing.List[typing.Dict[str, typing.Union[datetime.date, int]]]:
+    ) -> typing.List[DailyUsage]:
         if not end:
             end = datetime.date.today()
         days = []
@@ -113,6 +119,6 @@ class RateLimiter:
             f"{self.prefix}:{zone}:{key}:d{day.strftime('%Y%m%d')}" for day in days
         ]
         return [
-            {"date": d, "calls": int(calls.decode()) if calls else 0}
+            DailyUsage(d, int(calls.decode()) if calls else 0)
             for d, calls in zip(days, self.redis.mget(day_keys))
         ]

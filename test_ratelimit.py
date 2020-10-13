@@ -1,6 +1,6 @@
 import datetime
 import pytest
-from rrl import Tier, RateLimiter, RateLimitExceeded, _get_redis_connection
+from rrl import Tier, RateLimiter, RateLimitExceeded, _get_redis_connection, DailyUsage
 from freezegun import freeze_time
 
 redis = _get_redis_connection()
@@ -104,9 +104,9 @@ def test_get_daily_usage():
 
     with freeze_time("2020-01-15"):
         usage = rl.get_usage_since("zone", "test-key", datetime.date(2020, 1, 1))
-    assert usage[0] == {"date": datetime.date(2020, 1, 1), "calls": 1}
-    assert usage[3] == {"date": datetime.date(2020, 1, 4), "calls": 4}
-    assert usage[8] == {"date": datetime.date(2020, 1, 9), "calls": 9}
-    assert usage[9] == {"date": datetime.date(2020, 1, 10), "calls": 0}
-    assert usage[14] == {"date": datetime.date(2020, 1, 15), "calls": 0}
+    assert usage[0] == DailyUsage(datetime.date(2020, 1, 1), 1)
+    assert usage[3] == DailyUsage(datetime.date(2020, 1, 4), 4)
+    assert usage[8] == DailyUsage(datetime.date(2020, 1, 9), 9)
+    assert usage[9] == DailyUsage(datetime.date(2020, 1, 10), 0)
+    assert usage[14] == DailyUsage(datetime.date(2020, 1, 15), 0)
     assert len(usage) == 15
