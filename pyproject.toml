@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "rrl"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = ["James Turk <dev@jamesturk.net>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.7"
 redis = "^3.5.3"
 
 [tool.poetry.dev-dependencies]
