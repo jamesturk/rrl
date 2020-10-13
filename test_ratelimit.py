@@ -39,3 +39,50 @@ def test_check_limit_per_minute(tier, reset_time):
         # resets after a given time
         frozen.tick(reset_time)
         assert rl.check_limit("test-zone", "test-key", tier.name)
+
+
+def test_using_redis_time():
+    redis.flushall()
+    rl = RateLimiter(tiers=[simple_daily_tier], use_redis_time=True)
+
+    # don't loop infinitely if test is failing
+    count = 0
+    while count < 20:
+        try:
+            rl.check_limit("test-zone", "test-key", simple_daily_tier.name)
+            count += 1
+        except RateLimitExceeded as e:
+            break
+    assert count == 10
+
+
+def test_multiple_zones():
+    redis.flushall()
+    rl = RateLimiter(tiers=[simple_daily_tier], use_redis_time=True)
+
+    # don't loop infinitely if test is failing
+    count = 0
+    while count < 20:
+        try:
+            rl.check_limit("zone1", "test-key", simple_daily_tier.name)
+            rl.check_limit("zone2", "test-key", simple_daily_tier.name)
+            count += 1
+        except RateLimitExceeded:
+            break
+    assert count == 10
+
+
+def test_multiple_keys():
+    redis.flushall()
+    rl = RateLimiter(tiers=[simple_daily_tier], use_redis_time=True)
+
+    # don't loop infinitely if test is failing
+    count = 0
+    while count < 20:
+        try:
+            rl.check_limit("zone", "test-key1", simple_daily_tier.name)
+            rl.check_limit("zone", "test-key2", simple_daily_tier.name)
+            count += 1
+        except RateLimitExceeded:
+            break
+    assert count == 10
