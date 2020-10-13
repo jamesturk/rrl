@@ -1,3 +1,4 @@
+import datetime
 import pytest
 from rrl import Tier, RateLimiter, RateLimitExceeded, _get_redis_connection
 from freezegun import freeze_time
@@ -8,6 +9,7 @@ simple_hour_tier = Tier("10/hour", 0, 10, 0)
 simple_daily_tier = Tier("10/day", 0, 0, 10)
 long_minute_short_hour_tier = Tier("long_min_short_hour", 100, 10, 0)
 everything_set_short_day_tier = Tier("everything_set", 100, 100, 10)
+unlimited_tier = Tier("unlimited", 0, 0, 0)
 
 
 @pytest.mark.parametrize(
@@ -51,7 +53,7 @@ def test_using_redis_time():
         try:
             rl.check_limit("test-zone", "test-key", simple_daily_tier.name)
             count += 1
-        except RateLimitExceeded as e:
+        except RateLimitExceeded:
             break
     assert count == 10
 
@@ -86,3 +88,25 @@ def test_multiple_keys():
         except RateLimitExceeded:
             break
     assert count == 10
+
+
+def test_get_daily_usage():
+    redis.flushall()
+    rl = RateLimiter(
+        tiers=[unlimited_tier], use_redis_time=False, track_daily_usage=True
+    )
+
+    # make Nth day have N calls
+    for n in range(1, 10):
+        with freeze_time(f"2020-01-0{n}"):
+            for _ in range(n):
+                rl.check_limit("zone", "test-key", unlimited_tier.name)
+
+    with freeze_time("2020-01-15"):
+        usage = rl.get_usage_since("zone", "test-key", datetime.date(2020, 1, 1))
+    assert usage[0] == {"date": datetime.date(2020, 1, 1), "calls": 1}
+    assert usage[3] == {"date": datetime.date(2020, 1, 4), "calls": 4}
+    assert usage[8] == {"date": datetime.date(2020, 1, 9), "calls": 9}
+    assert usage[9] == {"date": datetime.date(2020, 1, 10), "calls": 0}
+    assert usage[14] == {"date": datetime.date(2020, 1, 15), "calls": 0}
+    assert len(usage) == 15

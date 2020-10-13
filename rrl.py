@@ -1,8 +1,8 @@
 import os
-from redis import Redis
 import datetime
 import typing
 from dataclasses import dataclass
+from redis import Redis
 
 
 @dataclass
@@ -32,12 +32,18 @@ class RateLimiter:
     """
 
     def __init__(
-        self, tiers: typing.List[Tier], *, prefix: str = "", use_redis_time: bool = True
+        self,
+        tiers: typing.List[Tier],
+        *,
+        prefix: str = "",
+        use_redis_time: bool = True,
+        track_daily_usage: bool = True,
     ):
         self.redis = _get_redis_connection()
         self.tiers = {tier.name: tier for tier in tiers}
         self.prefix = prefix
         self.use_redis_time = use_redis_time
+        self.track_daily_usage = track_daily_usage
 
     def check_limit(self, zone: str, key: str, tier_name: str) -> bool:
         if self.use_redis_time:
@@ -56,11 +62,13 @@ class RateLimiter:
             hour_key = f"{self.prefix}:{zone}:{key}:h{now.hour}"
             pipe.incr(hour_key)
             pipe.expire(hour_key, 3600)
-        if tier.per_day:
+        if tier.per_day or self.track_daily_usage:
             day = now.strftime("%Y%m%d")
             day_key = f"{self.prefix}:{zone}:{key}:d{day}"
             pipe.incr(day_key)
-            # do not expire day keys for now, useful for metrics
+            # keep data around for usage tracking
+            if not self.track_daily_usage:
+                pipe.expire(day_key, 86400)
         result = pipe.execute()
 
         # the result is pairs of results of incr and expire calls, so if all 3 limits are set
@@ -86,3 +94,25 @@ class RateLimiter:
                 )
 
         return True
+
+    def get_usage_since(
+        self,
+        zone: str,
+        key: str,
+        start: datetime.date,
+        end: typing.Optional[datetime.date] = None,
+    ) -> typing.List[typing.Dict[str, typing.Union[datetime.date, int]]]:
+        if not end:
+            end = datetime.date.today()
+        days = []
+        day = start
+        while day <= end:
+            days.append(day)
+            day += datetime.timedelta(days=1)
+        day_keys = [
+            f"{self.prefix}:{zone}:{key}:d{day.strftime('%Y%m%d')}" for day in days
+        ]
+        return [
+            {"date": d, "calls": int(calls.decode()) if calls else 0}
+            for d, calls in zip(days, self.redis.mget(day_keys))
+        ]
