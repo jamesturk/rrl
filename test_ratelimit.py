@@ -58,6 +58,14 @@ def test_using_redis_time():
     assert count == 10
 
 
+def test_invalid_tier():
+    redis.flushall()
+    rl = RateLimiter(tiers=[simple_daily_tier], use_redis_time=True)
+
+    with pytest.raises(ValueError):
+        rl.check_limit("test-zone", "test-key", "non-existent-tier")
+
+
 def test_multiple_zones():
     redis.flushall()
     rl = RateLimiter(tiers=[simple_daily_tier], use_redis_time=True)

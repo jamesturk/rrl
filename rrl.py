@@ -52,12 +52,15 @@ class RateLimiter:
         self.track_daily_usage = track_daily_usage
 
     def check_limit(self, zone: str, key: str, tier_name: str) -> bool:
+        try:
+            tier = self.tiers[tier_name]
+        except KeyError:
+            raise ValueError(f"unknown tier: {tier_name}")
         if self.use_redis_time:
             timestamp = self.redis.time()[0]
             now = datetime.datetime.fromtimestamp(timestamp)
         else:
             now = datetime.datetime.utcnow()
-        tier = self.tiers[tier_name]
 
         pipe = self.redis.pipeline()
         if tier.per_minute:
