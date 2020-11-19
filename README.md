@@ -36,7 +36,6 @@ limiter = RateLimiter(tiers=[bronze, silver])
 
 Then to apply limiting, you'll call the `check_limit` function, which takes three parameters:
 
-* `zone` - Limits are considered unique per zone.  So if you want calls against your geocoding API to count against a different limit than your user API you could pass those as unique zones.
 * `key` - A unique-per user key, often the user's API key or username. (Note: `rrl` does not know if a key is valid or not, that validation should be in your application and usually occur before the call to `check_limit`.)
 * `tier_name` - The name of one of the tiers as specified when instantiating the `RateLimiter` class.  (Note: `rrl` does not have a concept of which users are in which tier, that logic should be handled by your key validation code.)
 

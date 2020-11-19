@@ -32,9 +32,9 @@ def _get_redis_connection() -> Redis:
 
 class RateLimiter:
     """
-    <zone>:<key>:<hour><minute>         expires in 2 minutes
-    <zone>:<key>:<hour>                 expires in 2 hours
-    <zone>:<key>:<day>                  never expires
+    <prefix>:<key>:<hour><minute>         expires in 2 minutes
+    <prefix>:<key>:<hour>                 expires in 2 hours
+    <prefix>:<key>:<day>                  never expires
     """
 
     def __init__(
@@ -51,7 +51,7 @@ class RateLimiter:
         self.use_redis_time = use_redis_time
         self.track_daily_usage = track_daily_usage
 
-    def check_limit(self, zone: str, key: str, tier_name: str) -> bool:
+    def check_limit(self, key: str, tier_name: str) -> bool:
         try:
             tier = self.tiers[tier_name]
         except KeyError:
@@ -64,16 +64,16 @@ class RateLimiter:
 
         pipe = self.redis.pipeline()
         if tier.per_minute:
-            minute_key = f"{self.prefix}:{zone}:{key}:m{now.minute}"
+            minute_key = f"{self.prefix}:{key}:m{now.minute}"
             pipe.incr(minute_key)
             pipe.expire(minute_key, 60)
         if tier.per_hour:
-            hour_key = f"{self.prefix}:{zone}:{key}:h{now.hour}"
+            hour_key = f"{self.prefix}:{key}:h{now.hour}"
             pipe.incr(hour_key)
             pipe.expire(hour_key, 3600)
         if tier.per_day or self.track_daily_usage:
             day = now.strftime("%Y%m%d")
-            day_key = f"{self.prefix}:{zone}:{key}:d{day}"
+            day_key = f"{self.prefix}:{key}:d{day}"
             pipe.incr(day_key)
             # keep data around for usage tracking
             if not self.track_daily_usage:
@@ -106,7 +106,6 @@ class RateLimiter:
 
     def get_usage_since(
         self,
-        zone: str,
         key: str,
         start: datetime.date,
         end: typing.Optional[datetime.date] = None,
@@ -120,9 +119,7 @@ class RateLimiter:
         while day <= end:
             days.append(day)
             day += datetime.timedelta(days=1)
-        day_keys = [
-            f"{self.prefix}:{zone}:{key}:d{day.strftime('%Y%m%d')}" for day in days
-        ]
+        day_keys = [f"{self.prefix}:{key}:d{day.strftime('%Y%m%d')}" for day in days]
         return [
             DailyUsage(d, int(calls.decode()) if calls else 0)
             for d, calls in zip(days, self.redis.mget(day_keys))

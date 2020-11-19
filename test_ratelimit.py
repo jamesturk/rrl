@@ -31,7 +31,7 @@ def test_check_limit_per_minute(tier, reset_time):
         # don't loop infinitely if test is failing
         while count < 20:
             try:
-                rl.check_limit("test-zone", "test-key", tier.name)
+                rl.check_limit("test-key", tier.name)
                 count += 1
             except RateLimitExceeded as e:
                 print(e)
@@ -40,7 +40,7 @@ def test_check_limit_per_minute(tier, reset_time):
         assert count == 10
         # resets after a given time
         frozen.tick(reset_time)
-        assert rl.check_limit("test-zone", "test-key", tier.name)
+        assert rl.check_limit("test-key", tier.name)
 
 
 def test_using_redis_time():
@@ -51,7 +51,7 @@ def test_using_redis_time():
     count = 0
     while count < 20:
         try:
-            rl.check_limit("test-zone", "test-key", simple_daily_tier.name)
+            rl.check_limit("test-key", simple_daily_tier.name)
             count += 1
         except RateLimitExceeded:
             break
@@ -63,19 +63,20 @@ def test_invalid_tier():
     rl = RateLimiter(tiers=[simple_daily_tier], use_redis_time=True)
 
     with pytest.raises(ValueError):
-        rl.check_limit("test-zone", "test-key", "non-existent-tier")
+        rl.check_limit("test-key", "non-existent-tier")
 
 
-def test_multiple_zones():
+def test_multiple_prefix():
     redis.flushall()
-    rl = RateLimiter(tiers=[simple_daily_tier], use_redis_time=True)
+    rl1 = RateLimiter(tiers=[simple_daily_tier], use_redis_time=True, prefix="zone1")
+    rl2 = RateLimiter(tiers=[simple_daily_tier], use_redis_time=True, prefix="zone2")
 
     # don't loop infinitely if test is failing
     count = 0
     while count < 20:
         try:
-            rl.check_limit("zone1", "test-key", simple_daily_tier.name)
-            rl.check_limit("zone2", "test-key", simple_daily_tier.name)
+            rl1.check_limit("test-key", simple_daily_tier.name)
+            rl2.check_limit("test-key", simple_daily_tier.name)
             count += 1
         except RateLimitExceeded:
             break
@@ -90,8 +91,8 @@ def test_multiple_keys():
     count = 0
     while count < 20:
         try:
-            rl.check_limit("zone", "test-key1", simple_daily_tier.name)
-            rl.check_limit("zone", "test-key2", simple_daily_tier.name)
+            rl.check_limit("test-key1", simple_daily_tier.name)
+            rl.check_limit("test-key2", simple_daily_tier.name)
             count += 1
         except RateLimitExceeded:
             break
@@ -108,10 +109,10 @@ def test_get_daily_usage():
     for n in range(1, 10):
         with freeze_time(f"2020-01-0{n}"):
             for _ in range(n):
-                rl.check_limit("zone", "test-key", unlimited_tier.name)
+                rl.check_limit("test-key", unlimited_tier.name)
 
     with freeze_time("2020-01-15"):
-        usage = rl.get_usage_since("zone", "test-key", datetime.date(2020, 1, 1))
+        usage = rl.get_usage_since("test-key", datetime.date(2020, 1, 1))
     assert usage[0] == DailyUsage(datetime.date(2020, 1, 1), 1)
     assert usage[3] == DailyUsage(datetime.date(2020, 1, 4), 4)
     assert usage[8] == DailyUsage(datetime.date(2020, 1, 9), 9)
@@ -130,8 +131,8 @@ def test_get_daily_usage_untracked():
     for n in range(1, 10):
         with freeze_time(f"2020-01-0{n}"):
             for _ in range(n):
-                rl.check_limit("zone", "test-key", unlimited_tier.name)
+                rl.check_limit("test-key", unlimited_tier.name)
 
     # values would be incorrect (likely zero), warn the caller
     with pytest.raises(RuntimeError):
-        rl.get_usage_since("zone", "test-key", datetime.date(2020, 1, 1))
+        rl.get_usage_since("test-key", datetime.date(2020, 1, 1))
