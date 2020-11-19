@@ -10,9 +10,9 @@ Very simple reusable redis-backed rate limiting code.  Designed for OpenStates.o
 
 `rrl` is entirely configured by environment variables:
 
-**RRL_REDIS_HOST** - hostname of Redis instance (default: *localhost*)
-**RRL_REDIS_PORT** - port of Redis instance (default: *6379*)
-**RRL_REDIS_DB** - database ID to use for RRL (default: *0*)
+* **RRL_REDIS_HOST** - hostname of Redis instance (default: *localhost*)
+* **RRL_REDIS_PORT** - port of Redis instance (default: *6379*)
+* **RRL_REDIS_DB** - database ID to use for RRL (default: *0*)
 
 ## Usage
 
