@@ -42,7 +42,7 @@ Then to apply limiting, you'll call the `check_limit` function, which takes thre
 Example call:
 
 ```
-limiter.check_limit(zone="api", key="1234", tier_name="bronze")
+limiter.check_limit(key="1234", tier_name="bronze")
 ```
 
 This call will return without any error if the call is deemed allowed.
@@ -56,7 +56,6 @@ If multiple limits were exceeded it will return the shortest limit violated.
 
 Your `RateLimiter` instance also has a method named `get_usage_since`, which takes four parameters:
 
-* `zone` - Which usage zone you're requesting usage information for.
 * `key` - Which key you're requesting usage information for.
 * `start` - Date that you'd like usage since, as a `datetime.date` object.
 * `end` - Optional end date if you'd only like usage within a certain window, otherwise the current day is used.
